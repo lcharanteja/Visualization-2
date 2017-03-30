@@ -4,7 +4,7 @@ Dimension reduction using PCA.
 PCA, MDS,ISOMap Implementation of a data set using Sklearn library python.
 Visualized the dimension reduced data using scatter plot in d3.js. 
 
-Python Libraries used
+#Python Libraries used
 1. Pandas
 2. Scikit
 3. Flask
@@ -12,7 +12,7 @@ Python Libraries used
 5. scipy 
 6. matplotlib
 
-Javascript:
+#Javascript:
 1. D3.js
 2. Jquery
 
