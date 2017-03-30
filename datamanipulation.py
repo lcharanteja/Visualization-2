@@ -166,6 +166,20 @@ class analyze(object):
             pcadata.append(rowdata)
             cluster +=1
         return pcadata, screedata
-
+    
+    def isomap(self, data, labels):
+        mdata = data.drop(['State', 'District'], axis=1)
+        mdata = manifold.Isomap(n_neighbors=5, n_components=2).fit_transform(mdata)
+        cluster = 0
+        isomapdata=[]
+        for row in mdata:
+            rowdata = {}
+            rowdata['pointname'] = data.iloc[cluster][0]+','+str(data.iloc[cluster][3])
+            rowdata['xvalue'] = row[0]
+            rowdata['yvalue'] = row[1]
+            rowdata['cluster'] = labels[cluster]
+            isomapdata.append(rowdata)
+            cluster +=1
+        return isomapdata
 
 
