@@ -1,67 +1,141 @@
-function init(){
-	var margin = {top: 30, right: 40, bottom: 30, left: 80},
-    width = 900 - margin.left - margin.right,
+var margin = {top: 30, right: 5, bottom: 30, left: 95},
+    width = 1000 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
 	$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
 
-	function generatecluster()
+	function generateElbow()
 	{
 		d3.select(".visual").html("")
-		d3.select(".support").html("<div style='background-color:blue;color:white'>Please wait<div>");
-		$.getJSON($SCRIPT_ROOT + '/baseball/batting/generatecluster', {
-			clusters: $('input[name="kmeans"]').val(),
-			sampling: $('input[name="sampling"]:checked').val(),
-			viz: $('input[name="viz"]:checked').val()
+		d3.select(".support").html("<div class='loader'></div>");
+		$.getJSON($SCRIPT_ROOT + '/generateClusterElbow', {
+
 		  }, function(d) {
 		  	//console.log(d)
 		  	createElbowGraph(d.data)
 		  });
 		  return false;
 	}
-
+d3.select("#elbow")
+        .on("click", generateElbow);
 	function getDataToShow()
 	{
 		d3.select(".support").html("")
-		d3.select(".visual").html("<div style='background-color:blue;color:white'>Please wait<div>");
+		d3.select(".visual").html("<div class='loader'></div>");
 	 	 var data=[];
-		 $.getJSON($SCRIPT_ROOT + '/baseball/batting/visualize', {
+		 $.getJSON($SCRIPT_ROOT + '/display', {
 			clusters: $('input[name="kmeans"]').val(),
 			sampling: $('input[name=sampling]:checked').val(),
 			viz: $('input[name=viz]:checked').val()
 		  }, function(d) {
 		  //console.log(d)
 		    if (d.scree.length > 0)
-		  		createElbowGraph(d.scree)
+		  		createScreePlot(d.scree)
 		  	createGraph(d.data, ".visual")
 		  });
 		  return data;
 	}
-
-	function analyseText()
-	{
-		d3.select(".support").html("")
-		d3.select(".visualT").html("<div style='background-color:blue;color:white'>Please wait<div>");
-	 	 var data=[];
-		 $.getJSON($SCRIPT_ROOT + '/textanalysis', {}, function(d) {
-		    console.log(d)
-		  	createGraph(d.data, ".visualT", true)
-		  });
-		  return data;
-	}
-	$('button#clickme').bind('click', getDataToShow);
-	//$('button#generateCluster').bind('click', generatecluster);
-	$('#t1').bind('click', getDataToShow);
-	$('#t2').bind('click', analyseText);
-	$(function() {
-    $( "#tabs" ).tabs();
-  });
+d3.select("#getDataToShow")
+        .on("click", getDataToShow);
 	getDataToShow();
 
-	function createElbowGraph(data)
+		function createElbowGraph(data)
 	{console.log('createElbowGraph');
+
 		d3.select(".support").html('');
-		var ewidth = 500
+		var ewidth = 700
+		var eheight = 300
+		var x = d3.scale.linear()
+              .domain([0, d3.max(data, function(d) { return d.x; })])
+              .range([ 0, ewidth ]);
+
+    	var y = d3.scale.linear()
+    	      .domain([d3.min(data, function(d) { return d.y; }), d3.max(data, function(d) { return d.y; })])
+    	      .range([ eheight, 0 ]);
+
+    	var chart = d3.select('.support')
+		.append('svg:svg')
+		.attr('width', ewidth + margin.right + margin.left)
+		.attr('height',eheight + margin.top + margin.bottom)
+		.attr('class', 'chart')
+
+		var main = chart.append('g')
+		.attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+		.attr('width', ewidth)
+		.attr('height', eheight)
+		.attr('class', 'main')
+
+		// draw the x axis
+		var xAxis = d3.svg.axis()
+		.scale(x)
+		.orient('bottom');
+
+		main.append('g')
+		.attr('transform', 'translate(0,' + eheight + ')')
+		.attr('class', 'main axis date')
+		.call(xAxis)
+		.append("text")
+      .attr("class", "label")
+      .attr("x", ewidth)
+      .attr("y", -2)
+      .style("text-anchor", "end")
+      .text("#Components");
+
+		// draw the y axis
+		var yAxis = d3.svg.axis()
+		.scale(y)
+		.orient('left');
+
+
+		main.append('g')
+		.attr('transform', 'translate(0,0)')
+		.attr('class', 'main axis date')
+		.call(yAxis)
+		.append("text")
+      	.attr("class", "label")
+      	.attr("transform", "rotate(-90)")
+      	.attr("y", 6)
+      	.attr("dy", ".71em")
+      	.style("text-anchor", "end")
+      	.text("Percentage of variance explained");
+
+		var g = main.append("svg:g");
+
+		/*g.selectAll(".bar")
+     	.data(data)
+    	.enter().append("rect")
+      	.attr("class", "bar")
+      	.attr("x", function(d) { return x(d.x)-25; })
+      	.attr("width", 50)
+      	.attr("y", function(d) { return y(d.y); })
+      	.attr("height", function(d) { return eheight - y(d.y); });*/
+
+      	g.append("text")
+        .attr("x", (ewidth / 2))
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .text("K Means Elbow");
+var valueline = d3.svg.line()
+    .x(function(d) { return x(d.x); })
+    .y(function(d) { return y(d.y); });
+
+		g.append("path")
+        .attr("class", "line")
+        .attr("d", valueline(data));
+
+		g.selectAll("dot")
+		  .data(data)
+		  .enter().append("svg:circle")
+			  .attr("cx", function (d,i) { return x(d.x); } )
+			  .attr("cy", function (d) { return y(d.y); } )
+			  .attr("r", 3.5);
+	}
+
+	function createScreePlot(data)
+	{console.log('createScreePlot');
+		d3.select(".support").html('');
+		var ewidth = 600
 		var eheight = 300
 		var x = d3.scale.linear()
               .domain([0, d3.max(data, function(d) { return d.x; })])
@@ -162,8 +236,7 @@ var valueline = d3.svg.line()
 			graphtitle = 'MDS-Correlation'
 		else if (sel == 4)
 			graphtitle = 'Isomap'
-		if (text)
-			graphtitle = 'Text Analysis - Words in movie dialogues and Genre plot'
+		
 		d3.select(eclass).html('');
 		var svg = d3.select(eclass).append("svg")
 		.attr("width", width + margin.left + margin.right)
@@ -204,7 +277,7 @@ var valueline = d3.svg.line()
  	data.forEach(function(d) {
     d.xvalue = +d.xvalue;
     d.yvalue = +d.yvalue;
-    console.log(d);
+    //console.log(d);
   });
 
   // don't want dots overlapping axis, so add in buffer to data domain
@@ -243,13 +316,14 @@ var valueline = d3.svg.line()
       .attr("r", 3.5)
       .attr("cx", xMap)
       .attr("cy", yMap)
-      .style("fill", function(d) { return color(cValue(d));})
+      .style("fill",'blue')
+      //.style("fill", function(d) { return color(cValue(d));})
       .on("mouseover", function(d) {
           tooltip.transition()
                .duration(200)
                .style("opacity", .9);
           tooltip.html(d.pointname)
-          		.style("background-color",'yellow')
+          		.style("background-color",'#4CAF50')
                .style("left", (d3.event.pageX + 15) + "px")
                .style("top", (d3.event.pageY - 28) + "px");
       })
@@ -280,7 +354,5 @@ var valueline = d3.svg.line()
       .attr("dy", ".35em")
       .style("text-anchor", "end")
       .text(function(d) { return d;})
-
-}
 
 }
